@@ -1,0 +1,18 @@
+{% extends "admin/edit_inline/tabular.html" %}
+
+{% block inline_row %}
+    <tr class="form-row {% if inline_admin_form.original %}row1{% else %}row2{% endif %}">
+        {% for inline_field in inline_admin_form %}
+            <td class="{{ inline_field.field.name }} field-box">
+                {{ inline_field.errors }}
+                {{ inline_field.field }}
+            </td>
+        {% endfor %}
+        <td>
+            <form method="post" action="{% url 'admin:appname_coursesubcontent_change' inline_admin_form.original.pk %}">
+                {% csrf_token %}
+                <input type="submit" value="Save" class="button" />
+            </form>
+        </td>
+    </tr>
+{% endblock %}

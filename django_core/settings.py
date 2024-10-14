@@ -16,6 +16,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+     'jazzmin',  
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -26,6 +27,9 @@ INSTALLED_APPS = [
     
     'general',
     'accounts',
+    'activities',
+    'courses',
+    'payments'
 ]
 
 MIDDLEWARE = [
@@ -81,11 +85,13 @@ SIMPLE_JWT = {
 }
 
 REST_FRAMEWORK = {
+'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+],
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 }
-
 
 # DATABASES = {
 #     'default': {
@@ -94,8 +100,19 @@ REST_FRAMEWORK = {
 #     }
 # }
 
+# DATABASES = {
+#     'default': dj_database_url.config(default=config('DATABASE_URL'))
+# }
+
 DATABASES = {
-    'default': dj_database_url.config(default=config('DATABASE_URL'))
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'WcAcademy',
+        'USER': 'woodenclouds',
+        'PASSWORD': '123',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
 }
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -128,3 +145,39 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# settings.py
+
+JAZZMIN_SETTINGS = {
+    "site_title": "WC Academy Admin Panel",  # Title in the browser tab
+    "site_header": "Your Site Admin",  # Header in the admin
+    "site_brand": "Your Brand",  # Branding on the admin login page
+    "welcome_sign": "Welcome to Your Admin Portal",  # Custom welcome message
+    "site_logo": "yourapp/img/logo.png",  # Logo on the login page (optional)
+    "site_icon": None,  # Favicon for the admin site (optional)
+
+    # Top bar links (Useful for documentation, user-facing links, etc.)
+    "topmenu_links": [
+        {"name": "Home", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "Support", "url": "https://your-support-site.com", "new_window": True},
+        {"name": "Github Repo", "url": "https://github.com/your-repo", "new_window": True},
+    ],
+
+    # Custom icons for each app
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+    },
+
+    # Change the appearance of the admin pages
+    "show_ui_builder": True,  # Turn on the UI builder to help with theming
+    "order_with_respect_to": ["auth", "courses", "accounts","activities","payments"],  # Menu ordering
+
+    # Change colors of the admin
+    "theme": "flatly",  # Choose from themes like "cosmo", "flatly", "cyborg", "darkly", etc.
+    "dark_mode_theme": None,  # Optionally set a theme for dark mode
+
+    # Other settings...
+}
