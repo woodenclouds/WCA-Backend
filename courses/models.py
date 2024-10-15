@@ -96,6 +96,10 @@ class Chapter(BaseModel):
     position = models.PositiveIntegerField()
     is_published = models.BooleanField(default=False)
     course_sub_content = models.ForeignKey('CourseSubContent', on_delete=models.CASCADE,related_name='chapters')
+    chapter=models.ForeignKey('Course',on_delete=models.CASCADE,null=True,blank=True)
+    is_preview=models.BooleanField(default=False)
+    thumbnail=models.ImageField(upload_to="chapter/thumbnails",null=True,blank=True)
+    duration=models.CharField(null=True,blank=True)
 
     def __str__(self):
         return self.title
@@ -114,9 +118,10 @@ class Chapter(BaseModel):
         ordering = ("position",)
 class Attachment(BaseModel):
     name = models.CharField(max_length=255)
-    url = models.URLField(max_length=500)
+    url = models.URLField(max_length=500,blank=True)
     chapter = models.ForeignKey('Chapter', on_delete=models.CASCADE,related_name='attachments')
     type = models.CharField(max_length=10, choices=ATTACHMENT_TYPE_CHOICES)
+    file=models.FileField(upload_to="attachments",null=True,blank=True)
 
     def __str__(self):
         return self.name

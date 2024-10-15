@@ -8,41 +8,9 @@ from general.encryptions import encrypt,decrypt
 
 from datetime import datetime
 from courses.models import *
+from activities.models import *
 from . functions import *
 
-
-class UserSignUpSerializer(serializers.Serializer):
-    first_name = serializers.CharField(max_length=100)
-    last_name = serializers.CharField(max_length=100)
-    email = serializers.EmailField(max_length=255)
-    phone = serializers.CharField(max_length=15)
-    dob = serializers.DateField()
-    
-    def validate_phone(self, value):
-        if User.objects.filter(phone=value).exists():
-            raise serializers.ValidationError("Phone number already exists.")
-        return value
-    
-    def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Email already exists.")
-        return value
-    
-    def create(self, validated_data):
-        user = User.objects.create_user(
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name'],
-            email=validated_data['email'],
-            phone=validated_data['phone'],
-            dob=validated_data['dob'],
-            username=validated_data['email'],  # Assuming username is based on email
-            password= generate_random_password()
-        )
-        return user
-    
-class SignupVerifyOtpSerializer(serializers.Serializer):
-    otp = serializers.CharField(min_length=4, max_length=4)
-    phone = serializers.CharField()
 
 class ListCourseSerializer(serializers.ModelSerializer):
     total_contents=serializers.SerializerMethodField()
@@ -52,3 +20,54 @@ class ListCourseSerializer(serializers.ModelSerializer):
 
     def get_total_contents(self,obj):
         return obj.sub_contents.filter(is_deleted=False).count()
+
+class ListCourseSubcontentSidebar(serializers.ModelSerializer):
+    total_contents=serializers.SerializerMethodField()
+
+    class Meta:
+        model=CourseSubContent
+        fields=['id','title','position','type','total_contents']
+    def get_total_contents(self,obj):
+        return obj.chapters.filter(is_published=True).count()
+    
+
+class ListChapterofSubcontentSidebar(serializers.ModelSerializer):
+    is_completed=serializers.SerializerMethodField()
+    class Meta:
+        model=Chapter
+        fields=['id','title','thumbnail','duration','is_completed','position']
+    def get_is_completed(self, obj):
+        user = self.context.get('request').user
+        return UserProgress.objects.filter(user=user, chapter=obj, is_completed=True).exists()
+    
+class ViewChapterDetail(serializers.ModelSerializer):
+    course_name=serializers.CharField(source='course_sub_content.course.title')
+    documents = serializers.SerializerMethodField()
+    links = serializers.SerializerMethodField()
+    class Meta:
+        model=Chapter
+        fields=['id','video_url','thumbnail','title','duration','description','course_name','documents','links']
+    
+    def get_documents(self, obj):
+        # Filter attachments that have a file but no URL
+        documents = obj.attachments.filter(file__isnull=False, url='')
+        return [
+            {
+                'id': document.id,
+                'name': document.name,
+                'file': document.file.url if document.file else None
+            }
+            for document in documents
+        ]
+
+    def get_links(self, obj):
+        # Filter attachments that have a non-empty URL but no file
+        links = obj.attachments.filter(url__isnull=False, file='')
+        return [
+            {
+                'id': link.id,
+                'name': link.name,
+                'link': link.url
+            }
+            for link in links
+        ]

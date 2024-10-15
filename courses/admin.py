@@ -43,7 +43,7 @@ admin.site.register(Category, CategoryAdmin)
 class AttachmentInline(admin.TabularInline):
     model = Attachment
     extra = 1  # Allows adding one new attachment
-    fields = ['name', 'url', 'type']  # Display fields for attachments + edit link
+    fields = ['name', 'url', 'type','file']  # Display fields for attachments + edit link
     
 
 

@@ -7,6 +7,7 @@ urlpatterns = [
 
 
 re_path(r'^user/get-webinar-list/$', views.get_webinar_list, name="get_webinar_list"),
+re_path(r'^user/purchase-course/$', views.purchase_course, name="purchase_course"),
    
     
 

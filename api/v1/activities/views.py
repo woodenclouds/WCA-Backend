@@ -28,6 +28,7 @@ from django.http import HttpResponse
 from api.v1.accounts.serializers import *
 from accounts.models import *
 from general.models import *
+from courses.models import *
 from activities.models import *
 from .serializers import *
 # from payments.models import *
@@ -78,6 +79,58 @@ def get_webinar_list(request):
             }
         
         return Response({"app_data": response_data}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({
+            'app_data': {
+                "StatusCode": 6001,
+                "title": "Failed",
+                "api": request.get_full_path(),
+                "request": request.data,
+                "message": str(e),
+                "response": {
+                    e.__class__.__name__: traceback.format_exc()
+                }
+            }
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def purchase_course(request):
+    try:
+        user = request.user
+        course_id = request.data.get("course_id")
+        # Check if the course exists
+        course = Course.objects.filter(id=course_id).first()
+        if not course:
+            return Response({
+                'app_data': {
+                    "StatusCode": 6001,
+                    "title": "Failed",
+                    "message": "Course not found",
+                }
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if the user has already purchased this course
+        if CoursePurchase.objects.filter(user=user, course=course).exists():
+            return Response({
+                'app_data': {
+                    "StatusCode": 6001,
+                    "title": "Failed",
+                    "message": "You have already purchased this course",
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create the course purchase record
+        CoursePurchase.objects.create(user=user, course=course)
+
+        response_data = {
+            "StatusCode": 6000,
+            "title": "Success",
+            "message": "Course purchased successfully",
+        }
+        return Response({"app_data": response_data}, status=status.HTTP_201_CREATED)
+
     except Exception as e:
         return Response({
             'app_data': {
