@@ -39,14 +39,20 @@ class ListChapterofSubcontentSidebar(serializers.ModelSerializer):
     def get_is_completed(self, obj):
         user = self.context.get('request').user
         return UserProgress.objects.filter(user=user, chapter=obj, is_completed=True).exists()
-    
+#title,duration,instructor_name,language,is_certificate_available,course_fee,description
+class ViewCourseDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Course
+        fields=['id','title','duration','instructor_name','language','is_certificate_available','course_fee','description']
 class ViewChapterDetail(serializers.ModelSerializer):
     course_name=serializers.CharField(source='course_sub_content.course.title')
     documents = serializers.SerializerMethodField()
     links = serializers.SerializerMethodField()
+    course_detail = ViewCourseDetailSerializer(source='course_sub_content.course', read_only=True)
+    
     class Meta:
         model=Chapter
-        fields=['id','video_url','thumbnail','title','duration','description','course_name','documents','links']
+        fields=['id','video_url','thumbnail','title','duration','description','course_name','documents','links','is_preview','course_detail']
     
     def get_documents(self, obj):
         # Filter attachments that have a file but no URL
