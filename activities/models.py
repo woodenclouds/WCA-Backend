@@ -74,6 +74,7 @@ class UserProgress(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='progress')
     chapter = models.ForeignKey('courses.Chapter', on_delete=models.CASCADE, related_name='user_progress')
     is_completed = models.BooleanField(default=False)
+    completed_time=models.DateTimeField(null=True,blank=True)
 
     def save(self, *args, **kwargs):
         if self._state.adding:
@@ -103,6 +104,8 @@ class Assessment(BaseModel):
             auto_id = get_auto_id(Assessment)
             self.auto_id = auto_id
         super(Assessment, self).save(*args, **kwargs)
+    def __str__(self):
+        return f"{self.course_sub_content.course.title} assessment"
 
     class Meta:
         db_table = 'activities_assessment'
@@ -114,7 +117,7 @@ class Assessment(BaseModel):
 # Question Model
 class Question(BaseModel):
     assessment = models.ForeignKey('Assessment', on_delete=models.CASCADE, related_name='questions')
-    question_text = models.TextField()
+    question_text = models.CharField(null=True,blank=True)
     mark = models.PositiveIntegerField()
 
     def save(self, *args, **kwargs):
@@ -128,12 +131,14 @@ class Question(BaseModel):
         verbose_name = 'Question'
         verbose_name_plural = 'Questions'
         ordering = ('date_added',)
+    def __str__(self):
+        return f"{self.question_text}"
 
 
 # Answer Model
 class Answer(BaseModel):
     question = models.ForeignKey('Question', on_delete=models.CASCADE, related_name='answers')
-    text = models.TextField()
+    text = models.CharField(null=True,blank=True)
     is_correct = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
@@ -141,6 +146,8 @@ class Answer(BaseModel):
             auto_id = get_auto_id(Answer)
             self.auto_id = auto_id
         super(Answer, self).save(*args, **kwargs)
+    def __str__(self):
+        return f"{self.text}"
 
     class Meta:
         db_table = 'activities_answer'

@@ -24,7 +24,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
-    
+    'nested_admin',
     'general',
     'accounts',
     'activities',
@@ -156,6 +156,7 @@ JAZZMIN_SETTINGS = {
     "welcome_sign": "Welcome to Your Admin Portal",  # Custom welcome message
     "site_logo": "yourapp/img/logo.png",  # Logo on the login page (optional)
     "site_icon": None,  # Favicon for the admin site (optional)
+    "custom_css": "css/admin_custom.css", 
 
     # Top bar links (Useful for documentation, user-facing links, etc.)
     "topmenu_links": [
@@ -181,3 +182,6 @@ JAZZMIN_SETTINGS = {
 
     # Other settings...
 }
+
+RAZORPAY_KEY_ID="rzp_test_k401MSSoRFYoxD"
+RAZORPAY_KEY_SECRET="DSypqxiBvxfaSTO3dFavcEpM"

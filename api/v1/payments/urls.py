@@ -4,12 +4,12 @@ from .  import  views
 app_name = 'api_v1_payments'
 
 urlpatterns = [
+ 
 
-# re_path(r'^user/signup/$', views.user_signup, name="user-signup"),
-# re_path(r'^user/verify/$', views.verify_otp, name="user_verify"),
-# re_path(r'^user/login/$', views.user_login, name="user_login"),
-# re_path(r'^user/login-verify/$', views.user_login_verify, name="user_login_verify"),
-   
+    re_path(r'^user/order/create/$', views.create_order, name="user-create-order"),
+    re_path(r'^user/order/complete/$', views.transaction_view, name="user-complete-order"),
+
+
     
 
 ]

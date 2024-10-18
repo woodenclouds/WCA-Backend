@@ -3,6 +3,7 @@ from . models import *
 from django.urls import reverse
 from django.utils.html import format_html
 from .models import Course, CourseSubContent, Chapter
+from activities.models import Assessment
 # Register your models here.
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ("id", "name")
@@ -117,7 +118,25 @@ class ChapterInline(admin.TabularInline):
         # Allow changing chapters
         return True
 
+class AssessmentInline(admin.TabularInline):
+    model = Assessment
+    extra = 0  # No extra empty forms
+    fields = ['title', 'type', 'max_attempts', 'passing_score', 'total_questions', 'scoring_policy', 'edit_link']
+    readonly_fields = ['edit_link']
 
+    def edit_link(self, obj):
+        if obj.pk:
+            url = reverse('admin:activities_assessment_change', args=[obj.pk])
+            return format_html(f'<a href="{url}">View</a>')
+        return "Save to enable editing"
+
+    edit_link.short_description = "View Assessment"
+
+    def has_add_permission(self, request, obj):
+        return obj is not None
+
+    def has_change_permission(self, request, obj=None):
+        return True
 
 
 # Register CourseSubContent with the ability to manage chapters
@@ -125,13 +144,11 @@ class ChapterInline(admin.TabularInline):
 class CourseSubContentAdmin(admin.ModelAdmin):
     list_display = ['title', 'course', 'position', 'type']
     search_fields = ['title', 'course__title']
-    
-    # Adding Chapter inline to the CourseSubContent detail page
-    inlines = [ChapterInline]
+    inlines = [ChapterInline, AssessmentInline]  # Add both ChapterInline and AssessmentInline
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
         extra_context = extra_context or {}
-        extra_context['show_save_and_continue'] = True  # Keep save and continue editing
+        extra_context['show_save_and_continue'] = True
         return super(CourseSubContentAdmin, self).change_view(
             request, object_id, form_url, extra_context=extra_context
         )

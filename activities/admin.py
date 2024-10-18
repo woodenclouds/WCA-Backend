@@ -1,5 +1,7 @@
 from django.contrib import admin
 from . models import *
+import nested_admin
+
 
 # Register your models here.
 class CoursePurchaseAdmin(admin.ModelAdmin):
@@ -26,12 +28,12 @@ class UserProgressAdmin(admin.ModelAdmin):
 admin.site.register(UserProgress, UserProgressAdmin)
 
 
-class AssessmentAdmin(admin.ModelAdmin):
-    list_display = ("id", "title", "type", "max_attempts", "passing_score", "total_questions", "scoring_policy", "course_sub_content")
-    list_filter = ("type", "scoring_policy", "date_added", "date_updated")
-    search_fields = ("title", "course_sub_content__name")
+# class AssessmentAdmin(admin.ModelAdmin):
+#     list_display = ("id", "title", "type", "max_attempts", "passing_score", "total_questions", "scoring_policy", "course_sub_content")
+#     list_filter = ("type", "scoring_policy", "date_added", "date_updated")
+#     search_fields = ("title", "course_sub_content__name")
 
-admin.site.register(Assessment, AssessmentAdmin)
+# admin.site.register(Assessment, AssessmentAdmin)
 
 
 class QuestionAdmin(admin.ModelAdmin):
@@ -97,3 +99,32 @@ class TaskSubmissionAdmin(admin.ModelAdmin):
 
 admin.site.register(TaskSubmission, TaskSubmissionAdmin)
 
+
+class AnswerInline(nested_admin.NestedTabularInline):
+    model = Answer
+    extra = 4  # Display 4 fields for answers by default
+    min_num = 4
+    max_num = 4
+    fields = ['text', 'is_correct']
+    can_delete = True
+
+class QuestionInline(nested_admin.NestedStackedInline):
+    model = Question
+    extra = 1  # Display 1 question by default
+    fields = ['question_text', 'mark']
+    can_delete = True
+    inlines = [AnswerInline]  # Nest the AnswerInline inside the QuestionInline
+
+class AllQuestionsInline(nested_admin.NestedTabularInline):  # Changed to show questions only
+    model = Question
+    fields = ['question_text', 'mark']
+    extra = 0  # Do not display extra empty forms
+    can_delete = True  # Allow deletion of questions
+    show_change_link = True  # Show a link to change the Question
+    inlines = []  # No nested inlines for AllQuestionsInline
+class AssessmentAdmin(nested_admin.NestedModelAdmin):
+    list_display = ['title', 'type', 'max_attempts', 'passing_score', 'total_questions', 'scoring_policy']
+    search_fields = ['title', 'type']
+    inlines = [QuestionInline]  # Include both inlines
+
+admin.site.register(Assessment, AssessmentAdmin)

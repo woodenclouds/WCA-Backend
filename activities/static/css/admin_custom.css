@@ -1,0 +1,5 @@
+/* admin_custom.css */
+input[type="text"], input[type="number"], textarea {
+    width: 400px !important;  /* Customize the width as needed */
+    max-width: 100%;  /* Prevent overflow */
+}

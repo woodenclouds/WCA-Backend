@@ -9,6 +9,7 @@ from general.encryptions import encrypt,decrypt
 from datetime import datetime
 from . functions import *
 from activities.models import *
+from courses.models import *
 
 
 # class UserSignUpSerializer(serializers.Serializer):
@@ -56,3 +57,4 @@ class ListWebinarSerializer(serializers.ModelSerializer):
         formatted_date = instance.event_date.strftime("%d %b %Y")
         formatted_time = instance.event_date.strftime("%H:%M:%S")  # Keep time format as before
         return f"{formatted_date}"
+

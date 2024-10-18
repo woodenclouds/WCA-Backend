@@ -261,3 +261,108 @@ def get_chapter_detail(request,pk):
                 }
             }
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def get_course_detail(request,pk):
+    try:
+        course=Course.objects.filter(id=pk).first()
+        if not course:
+            return Response({
+                'app_data': {
+                    "StatusCode": 6001,
+                    "data": {
+                        "title": "Failed",
+                        "message": "Course Not Found",
+                    }
+                }
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        
+            
+        serialized_data =ViewCourseDetailSerializer(
+            course,
+            context={"request":request},
+        ).data
+
+        response_data = {
+            "StatusCode": 6000,
+            "title": "Success",
+            "data":{
+                "data":serialized_data,
+            },
+        }
+    
+        return Response({"app_data": response_data}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({
+            'app_data': {
+                "StatusCode": 6001,
+                "title": "Failed",
+                "api": request.get_full_path(),
+                "request": request.data,
+                "message": str(e),
+                "response": {
+                    e.__class__.__name__: traceback.format_exc()
+                }
+            }
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def get_purchased_courses_list(request):
+    try:
+        user = request.user
+        # Get the courses the user has enrolled in
+        enrolled_courses = Course.objects.filter(purchases__user=user)
+        
+        if enrolled_courses.exists():
+            paginated_data = paginate_data(enrolled_courses, request, items_per_page=10)
+            serialized_data =EnrolledCourseSerializer(
+                paginated_data['instances'],
+                context={"request": request},
+                many=True
+            ).data
+
+            response_data = {
+                "StatusCode": 6000,
+                "title": "Success",
+                "data":{
+                    "data":serialized_data,
+                    
+                    "pagination": {
+                        "has_next_page": paginated_data['has_next_page'],
+                        "next_page_number": paginated_data['next_page_number'],
+                        "has_previous_page": paginated_data['has_previous_page'],
+                        "previous_page_number": paginated_data['previous_page_number'],
+                        "total_pages": paginated_data['total_pages'],
+                        "total_items": paginated_data['total_items'],
+                        "first_item": paginated_data['first_item'],
+                        "last_item": paginated_data['last_item'],
+                    }
+                },
+            }
+        else:
+            response_data = {
+                "StatusCode": 6001,
+                "data": [],
+                "message": "No Enrolled Courses found"
+            }
+        
+        return Response({"app_data": response_data}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({
+            'app_data': {
+                "StatusCode": 6001,
+                "title": "Failed",
+                "api": request.get_full_path(),
+                "request": request.data,
+                "message": str(e),
+                "response": {
+                    e.__class__.__name__: traceback.format_exc()
+                }
+            }
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

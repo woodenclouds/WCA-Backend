@@ -77,3 +77,34 @@ class ViewChapterDetail(serializers.ModelSerializer):
             }
             for link in links
         ]
+
+
+class EnrolledCourseSerializer(serializers.ModelSerializer):
+    total_subcontents = serializers.SerializerMethodField()
+    user_progress = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Course
+        fields = ['id', 'title', 'image', 'total_subcontents', 'user_progress']
+
+    def get_total_subcontents(self, obj):
+        # Get total number of subcontents for the course
+        return obj.sub_contents.count()
+
+    def get_user_progress(self, obj):
+        # Get the user from the context
+        user = self.context['request'].user
+
+        # Get total number of chapters for the course
+        total_chapters = Chapter.objects.filter(course_sub_content__course=obj).count()
+        print(f"total chapters {total_chapters}")
+
+        # Get the number of chapters the user has completed
+        completed_chapters = UserProgress.objects.filter(
+            user=user, chapter__course_sub_content__course=obj, is_completed=True
+        ).count()
+        print("completed chapters",completed_chapters)
+
+        # Calculate the user progress value as a percentage
+        user_progress = (completed_chapters / total_chapters) * 100 if total_chapters > 0 else 0
+        return round(user_progress, 2)  # Rounded to 2 decimal places
