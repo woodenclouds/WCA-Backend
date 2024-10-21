@@ -3,7 +3,7 @@ from . models import *
 from django.urls import reverse
 from django.utils.html import format_html
 from .models import Course, CourseSubContent, Chapter
-from activities.models import Assessment
+from activities.models import Assessment,Task
 # Register your models here.
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ("id", "name")
@@ -46,7 +46,11 @@ class AttachmentInline(admin.TabularInline):
     extra = 1  # Allows adding one new attachment
     fields = ['name', 'url', 'type','file']  # Display fields for attachments + edit link
     
-
+class TaskAttachmentInline(admin.TabularInline):
+    model = Attachment
+    extra = 1  # Allows adding one new attachment
+    fields = ['name','type','file']  # Display fields for attachments + edit link
+    
 
 # Admin for the Chapter, with inline attachments
 @admin.register(Chapter)
@@ -137,14 +141,32 @@ class AssessmentInline(admin.TabularInline):
 
     def has_change_permission(self, request, obj=None):
         return True
+class TaskInline(admin.TabularInline):
+    model = Task
+    extra = 0  # No extra empty forms
+    fields = ['title', 'description', 'instructions','task', 'edit_link']
+    readonly_fields = ['edit_link']
 
+    def edit_link(self, obj):
+        if obj.pk:
+            url = reverse('admin:activities_task_change', args=[obj.pk])
+            return format_html(f'<a href="{url}">View</a>')
+        return "Save to enable editing"
+
+    edit_link.short_description = "View Assessment"
+
+    def has_add_permission(self, request, obj):
+        return obj is not None
+
+    def has_change_permission(self, request, obj=None):
+        return True
 
 # Register CourseSubContent with the ability to manage chapters
 @admin.register(CourseSubContent)
 class CourseSubContentAdmin(admin.ModelAdmin):
     list_display = ['title', 'course', 'position', 'type']
     search_fields = ['title', 'course__title']
-    inlines = [ChapterInline, AssessmentInline]  # Add both ChapterInline and AssessmentInline
+    inlines = [ChapterInline, AssessmentInline,TaskInline]  # Add both ChapterInline and AssessmentInline
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
         extra_context = extra_context or {}

@@ -1,6 +1,7 @@
 from django.contrib import admin
 from . models import *
 import nested_admin
+from courses.admin import TaskAttachmentInline
 
 
 # Register your models here.
@@ -53,7 +54,7 @@ admin.site.register(Answer, AnswerAdmin)
 
 
 class UserAssessmentAttemptAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "assessment", "attempt_number", "total_score", "status")
+    list_display = ("id", "user", "assessment", "attempt_number", "total_score","max_score", "status")
     list_filter = ("status", "user", "assessment", "date_added", "date_updated")
     search_fields = ("user__first_name", "user__last_name", "assessment__title")
 
@@ -88,6 +89,7 @@ class TaskAdmin(admin.ModelAdmin):
     list_display = ("id", "title", "course_sub_content")
     list_filter = ("course_sub_content", "date_added", "date_updated")
     search_fields = ("title", "course_sub_content__name")
+    inlines = [TaskAttachmentInline]
 
 admin.site.register(Task, TaskAdmin)
 

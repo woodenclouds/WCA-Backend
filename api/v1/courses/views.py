@@ -15,6 +15,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from django.db import transaction
 from django.db.models import Q
+from django.db.models import Sum
 from django.shortcuts import render
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
@@ -157,12 +158,11 @@ def get_course_sub_content_sidebar(request,pk):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 
-
 @api_view(["GET"])
 @permission_classes([AllowAny])
-def get_chapters_of_sub_content_sidebar(request,pk):
+def get_chapters_of_sub_content_sidebar(request, pk):
     try:
-        subcontent=CourseSubContent.objects.filter(id=pk).first()
+        subcontent = CourseSubContent.objects.filter(id=pk).first()
         if not subcontent:
             return Response({
                 'app_data': {
@@ -174,31 +174,74 @@ def get_chapters_of_sub_content_sidebar(request,pk):
                 }
             }, status=status.HTTP_404_NOT_FOUND)
 
-
-        chapters=subcontent.chapters.filter(is_published=True).order_by("position")
-        
-        if chapters.exists():
-            
-            serialized_data =ListChapterofSubcontentSidebar(
-                chapters,
-                context={"request":request},
-                many=True
-            ).data
-
-            response_data = {
-                "StatusCode": 6000,
-                "title": "Success",
-                "data":{
-                    "data":serialized_data,
-                },
-            }
+        # Check the type of CourseSubContent
+        if subcontent.type == 'assessment':
+            # If the type is assessment, fetch related assessments
+            assessments = subcontent.assessments.all().order_by("id")
+            if assessments.exists():
+                serialized_data = ListAssessmentSerializer(
+                    assessments,
+                    context={"request": request},
+                    many=True
+                ).data
+                response_data = {
+                    "StatusCode": 6000,
+                    "title": "Success",
+                    "data": {
+                        "data": serialized_data,
+                    },
+                }
+            else:
+                response_data = {
+                    "StatusCode": 6001,
+                    "data": [],
+                    "message": "No Assessments Found for this subcontent"
+                }
+        elif subcontent.type == 'task':
+            # If the type is assessment, fetch related assessments
+            tasks = subcontent.tasks.all().order_by("id")
+            if tasks.exists():
+                serialized_data = ListTaskSerializer(
+                    tasks,
+                    context={"request": request},
+                    many=True
+                ).data
+                response_data = {
+                    "StatusCode": 6000,
+                    "title": "Success",
+                    "data": {
+                        "data": serialized_data,
+                    },
+                }
+            else:
+                response_data = {
+                    "StatusCode": 6001,
+                    "data": [],
+                    "message": "No Task Found for this subcontent"
+                }
         else:
-            response_data = {
-                "StatusCode": 6001,
-                "data": [],
-                "message": "No Chapters Found for this subcontent"
-            }
-        
+            # If the type is chapter, fetch related chapters
+            chapters = subcontent.chapters.filter(is_published=True).order_by("position")
+            if chapters.exists():
+                serialized_data = ListChapterofSubcontentSidebar(
+                    chapters,
+                    context={"request": request},
+                    many=True
+                ).data
+                response_data = {
+                    "StatusCode": 6000,
+                    "title": "Success",
+                    "data": {
+                        "data": serialized_data,
+                    },
+                }
+            else:
+                response_data = {
+                    "StatusCode": 6001,
+                    "data": [],
+                    "message": "No Chapters Found for this subcontent"
+                }
+
         return Response({"app_data": response_data}, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({
@@ -366,3 +409,188 @@ def get_purchased_courses_list(request):
                 }
             }
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def get_assessment_details(request,pk):
+    try:
+        # Fetch the assessment
+        assessment = Assessment.objects.filter(id=pk).first()
+        if not assessment:
+            return Response({
+                'app_data': {
+                    "StatusCode": 6001,
+                    "data": {
+                        "title": "Failed",
+                        "message": "Assessment Not Found",
+                    }
+                }
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Serialize the assessment details
+        serialized_data = AssessmentDetailSerializer(
+            assessment, 
+            context={"request": request}
+        ).data
+
+        response_data = {
+            "StatusCode": 6000,
+            "title": "Success",
+            "data": serialized_data,
+        }
+        return Response({"app_data": response_data}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({
+            'app_data': {
+                "StatusCode": 6001,
+                "title": "Failed",
+                "api": request.get_full_path(),
+                "request": request.data,
+                "message": str(e),
+                "response": {
+                    e.__class__.__name__: traceback.format_exc()
+                }
+            }
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def submit_assessment(request, pk):
+    try:
+        # Fetch the assessment
+        assessment = Assessment.objects.filter(id=pk).first()
+        if not assessment:
+            return Response({
+                "app_data": {
+                    "StatusCode": 6001,
+                    "data": {
+                        "title": "Failed",
+                        "message": "Assessment Not Found",
+                    }
+                }
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Get submitted answers
+        submitted_answers = request.data.get('submit_answer', [])
+        if not submitted_answers:
+            return Response({
+                "app_data": {
+                    "StatusCode": 6001,
+                    "title": "Failed",
+                    "message": "No answers submitted.",
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check for duplicate question submission
+        question_ids = [answer['question_id'] for answer in submitted_answers]
+        if len(question_ids) != len(set(question_ids)):
+            return Response({
+                "app_data": {
+                    "StatusCode": 6001,
+                    "title": "Failed",
+                    "message": "Duplicate questions are not allowed.",
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get the current user
+        user = request.user
+
+        # Check if the user has exceeded the maximum attempts
+        previous_attempts = UserAssessmentAttempt.objects.filter(user=user, assessment=assessment).count()
+        if previous_attempts >= assessment.max_attempts:
+            return Response({
+                "app_data": {
+                    "StatusCode": 6001,
+                    "title": "Failed",
+                    "message": "Maximum attempts exceeded for this assessment.",
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate questions and answers
+        valid_answers = []
+        total_score = 0
+        max_score = 0
+        wrong_answers_count = 0 
+
+        for submitted_answer in submitted_answers:
+            question_id = submitted_answer['question_id']
+            answer_id = submitted_answer['answer_id']
+
+            # Fetch the question and answer
+            question = Question.objects.filter(id=question_id, assessment=assessment).first()
+            answer = Answer.objects.filter(id=answer_id, question=question).first()
+
+            if not question or not answer:
+                return Response({
+                    "app_data": {
+                        "StatusCode": 6001,
+                        "title": "Failed",
+                        "message": f"Invalid question or answer: Question ID {question_id}, Answer ID {answer_id}",
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Determine the marks awarded
+            marks_awarded = question.mark if answer.is_correct else 0
+            if not answer.is_correct:
+                wrong_answers_count += 1  # Increment wrong answer count if the answer is incorrect
+            valid_answers.append((question, answer, marks_awarded))
+            total_score += marks_awarded
+            max_score += question.mark
+
+        # Create UserAssessmentAttempt after validation
+        attempt_number = previous_attempts + 1
+        user_assessment_attempt = UserAssessmentAttempt.objects.create(
+            user=user,
+            assessment=assessment,
+            attempt_number=attempt_number,
+            max_score=max_score,
+            total_score=total_score,  # Set the total score directly
+            status='pending'  # Initially set to pending
+        )
+
+        # Create UserAnswer entries
+        for question, answer, marks_awarded in valid_answers:
+            UserAnswer.objects.create(
+                user_attempt=user_assessment_attempt,
+                question=question,
+                answer=answer,
+                marks_awarded=marks_awarded
+            )
+
+        # Determine pass/fail status
+        user_assessment_attempt.status = 'passed' if total_score >= assessment.passing_score else 'failed'
+        user_assessment_attempt.save()
+        attempts_left = assessment.max_attempts - attempt_number
+
+        # Success response
+        response_data = {
+            "StatusCode": 6000,
+            "title": "Success",
+            "data": {
+                "attempt_number": user_assessment_attempt.attempt_number,
+                "total_score": user_assessment_attempt.total_score,
+                "status": user_assessment_attempt.status,
+                "wrong_answers_count": wrong_answers_count,  # Number of wrong answers
+                "attempts_left": max(0, attempts_left)  # Number of attempts left, ensure it's not negative
+            }
+        }
+        return Response({"app_data": response_data}, status=status.HTTP_200_OK)
+
+    except Exception as E:
+        errType = E.__class__.__name__
+        errors = {
+            errType: traceback.format_exc()
+        }
+        response_data = {
+            "StatusCode": 6001,
+            "title": "Failed",
+            "api": request.get_full_path(),
+            "request": request.data,
+            "message": str(E),
+            "response": errors
+        }
+        return Response({'app_data': response_data}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

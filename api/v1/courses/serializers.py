@@ -20,16 +20,33 @@ class ListCourseSerializer(serializers.ModelSerializer):
 
     def get_total_contents(self,obj):
         return obj.sub_contents.filter(is_deleted=False).count()
+class ListAssessmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Assessment
+        fields = ['id', 'title']
+
+class ListTaskSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Task
+        fields = ['id', 'title']
 
 class ListCourseSubcontentSidebar(serializers.ModelSerializer):
-    total_contents=serializers.SerializerMethodField()
+    total_contents = serializers.SerializerMethodField()
 
     class Meta:
-        model=CourseSubContent
-        fields=['id','title','position','type','total_contents']
-    def get_total_contents(self,obj):
-        return obj.chapters.filter(is_published=True).count()
-    
+        model = CourseSubContent
+        fields = ['id', 'title', 'position', 'type', 'total_contents']
+
+    def get_total_contents(self, obj):
+        # Check the type of CourseSubContent
+        if obj.type == 'assessment':
+            # If type is assessment, return the total number of assessments
+            return obj.assessments.count()
+        elif obj.type=='task':
+            return obj.tasks.count()
+        else:
+            # If type is chapter, count the published chapters
+            return obj.chapters.filter(is_published=True).count()
 
 class ListChapterofSubcontentSidebar(serializers.ModelSerializer):
     is_completed=serializers.SerializerMethodField()
@@ -108,3 +125,42 @@ class EnrolledCourseSerializer(serializers.ModelSerializer):
         # Calculate the user progress value as a percentage
         user_progress = (completed_chapters / total_chapters) * 100 if total_chapters > 0 else 0
         return round(user_progress, 2)  # Rounded to 2 decimal places
+
+class AnswerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Answer
+        fields = ['id', 'text']
+
+class QuestionSerializer(serializers.ModelSerializer):
+    answers = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Question
+        fields = ['id', 'question_text', 'mark', 'answers']
+
+    def get_answers(self, obj):
+        # Shuffle the answers for each question
+        answers = list(obj.answers.all())
+        random.shuffle(answers)
+        return AnswerSerializer(answers, many=True).data
+
+class AssessmentDetailSerializer(serializers.ModelSerializer):
+    course_title = serializers.CharField(source='course_sub_content.course.title')
+    questions = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Assessment
+        fields = [
+            'id', 'title', 'type', 'max_attempts', 'total_questions', 
+            'scoring_policy', 'passing_score', 'course_title', 'questions'
+        ]
+
+    def get_questions(self, obj):
+        # Shuffle the questions for each assessment
+        questions = list(obj.questions.all())
+        random.shuffle(questions)
+        
+        # Select up to 10 questions randomly
+        selected_questions = questions[:obj.total_questions]
+        
+        return QuestionSerializer(selected_questions, many=True).data

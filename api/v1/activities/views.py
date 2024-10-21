@@ -353,3 +353,277 @@ def download_all_documents(request,pk):
                 }
             }
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def latest_attempt_summary(request,pk):
+    try:
+        # Get the current user
+        user = request.user
+        assessment=Assessment.objects.filter(id=pk).first()
+        if not assessment:
+            return Response({
+                "app_data":{
+                    "StatusCode":6001,
+                    "title":"Failed",
+                    "message":"No Assesment Found"
+                }
+            },status=status.HTTP_404_NOT_FOUND)
+
+        # Fetch the latest user attempt
+        latest_attempt = UserAssessmentAttempt.objects.filter(user=user,assessment=assessment).order_by('-attempt_number').first()
+        if not latest_attempt:
+            return Response({
+                "app_data": {
+                    "StatusCode": 6001,
+                    "title": "Failed",
+                    "message": "No attempts found for the user for this assessment.",
+                }
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Fetch the related assessment
+        assessment = latest_attempt.assessment
+
+        # Calculate max score based on total marks of all questions in the assessment
+        max_score = latest_attempt.max_score
+
+        # Prepare the response data
+        response_data = {
+            'course_title': assessment.course_sub_content.course.title,  # Assuming Assessment has a relation to Course model
+            'assessment_title': assessment.title,
+            'scoring_policy': assessment.scoring_policy,
+            'passing_score': assessment.passing_score,
+            'total_questions': assessment.total_questions,
+            'assessment_type': assessment.type,
+            'max_attempts': assessment.max_attempts,
+            'max_score': max_score or 0,
+            'total_score': latest_attempt.total_score,
+            'status': latest_attempt.status,
+            'attempt_number': latest_attempt.attempt_number,
+        }
+
+        # Serialize the response data
+       
+
+        # Return the serialized data in the response
+        return Response({"app_data": {"StatusCode": 6000, "data": response_data}}, status=status.HTTP_200_OK)
+
+    except Exception as E:
+        errType = E.__class__.__name__
+        errors = {
+            errType: traceback.format_exc()
+        }
+        response_data = {
+            "StatusCode": 6001,
+            "title": "Failed",
+            "api": request.get_full_path(),
+            "request": request.data,
+            "message": str(E),
+            "response": errors
+        }
+        return Response({'app_data': response_data}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_assessment_attempt_history_list(request,pk):
+    try:
+        user=request.user
+        assessment=Assessment.objects.filter(id=pk).first()
+        if not assessment:
+            return Response({
+                "app_data":{
+                    "StatusCode":6001,
+                    "title":"Failed",
+                    "message":"No Assesment Found"
+                }
+            },status=status.HTTP_404_NOT_FOUND)
+        user_attempts = UserAssessmentAttempt.objects.filter(
+        user=user, 
+        assessment=assessment
+    ).order_by('attempt_number')
+        
+        if user_attempts.exists():
+            paginated_data = paginate_data(user_attempts, request, items_per_page=10)
+            serialized_data =ListUserAssessmentAttemptHistorySerializer(
+                paginated_data['instances'],
+                context={"request": request},
+                many=True
+            ).data
+
+            response_data = {
+                "StatusCode": 6000,
+                "title": "Success",
+                "data":{
+                    "data":serialized_data,
+                    
+                    "pagination": {
+                        "has_next_page": paginated_data['has_next_page'],
+                        "next_page_number": paginated_data['next_page_number'],
+                        "has_previous_page": paginated_data['has_previous_page'],
+                        "previous_page_number": paginated_data['previous_page_number'],
+                        "total_pages": paginated_data['total_pages'],
+                        "total_items": paginated_data['total_items'],
+                        "first_item": paginated_data['first_item'],
+                        "last_item": paginated_data['last_item'],
+                    }
+                },
+            }
+        else:
+            response_data = {
+                "StatusCode": 6001,
+                "data": [],
+                "message": "No User Attempts Found"
+            }
+        
+        return Response({"app_data": response_data}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({
+            'app_data': {
+                "StatusCode": 6001,
+                "title": "Failed",
+                "api": request.get_full_path(),
+                "request": request.data,
+                "message": str(e),
+                "response": {
+                    e.__class__.__name__: traceback.format_exc()
+                }
+            }
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_user_attempt_detail(request,pk):
+    try:
+        user_assessment_attempt = UserAssessmentAttempt.objects.filter(id=pk).first()
+        if not user_assessment_attempt:
+            return Response({
+                'app_data': {
+                    "StatusCode": 6001,
+                    "data": {
+                        "title": "Failed",
+                        "message": "User Assessment Attempt Not Found",
+                    }
+                }
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        
+            
+        serialized_data=UserAssessmentAttemptDetailSerializer(user_assessment_attempt).data
+
+        response_data = {
+            "StatusCode": 6000,
+            "title": "Success",
+            "data":{
+                "data":serialized_data,
+            },
+        }
+    
+        return Response({"app_data": response_data}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({
+            'app_data': {
+                "StatusCode": 6001,
+                "title": "Failed",
+                "api": request.get_full_path(),
+                "request": request.data,
+                "message": str(e),
+                "response": {
+                    e.__class__.__name__: traceback.format_exc()
+                }
+            }
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def add_assessment_feedback(request):
+    try:
+        user = request.user
+        user_attempt_id = request.data.get("user_assessment_id")
+        # Check if the course exists
+        if UserAssessmentAttempt.objects.filter(id=user_attempt_id).exists():
+            user_assessment_attempt = UserAssessmentAttempt.objects.filter(id=user_attempt_id).first()
+        else:
+            return Response({
+                'app_data': {
+                    "StatusCode": 6001,
+                    "title": "Failed",
+                    "message": "UserAssessment not found",
+                }
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        serialized=AssessmentAttemptFeedbackSerializer(data=request.data)
+        if serialized.is_valid():
+            comment=serialized.validated_data.get("comment")
+
+        AssessmentAttemptFeedback.objects.create(user=user,user_attempt=user_assessment_attempt,comment=comment)
+
+        response_data = {
+            "StatusCode": 6000,
+            "title": "Success",
+            "message": "Assessment Feedback Submitted Successfully",
+        }
+        return Response({"app_data": response_data}, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        return Response({
+            'app_data': {
+                "StatusCode": 6001,
+                "title": "Failed",
+                "api": request.get_full_path(),
+                "request": request.data,
+                "message": str(e),
+                "response": {
+                    e.__class__.__name__: traceback.format_exc()
+                }
+            }
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_task_detail(request,pk):
+    try:
+        task = Task.objects.filter(id=pk).first()
+        if not task:
+            return Response({
+                'app_data': {
+                    "StatusCode": 6001,
+                    "data": {
+                        "title": "Failed",
+                        "message": "Task Not Found",
+                    }
+                }
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        
+            
+        serialized_data=TaskDetailSerializer(task).data
+
+        response_data = {
+            "StatusCode": 6000,
+            "title": "Success",
+            "data":{
+                "data":serialized_data,
+            },
+        }
+    
+        return Response({"app_data": response_data}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({
+            'app_data': {
+                "StatusCode": 6001,
+                "title": "Failed",
+                "api": request.get_full_path(),
+                "request": request.data,
+                "message": str(e),
+                "response": {
+                    e.__class__.__name__: traceback.format_exc()
+                }
+            }
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

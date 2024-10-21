@@ -163,12 +163,15 @@ class UserAssessmentAttempt(BaseModel):
     attempt_number = models.PositiveIntegerField()
     total_score = models.DecimalField(max_digits=5, decimal_places=2)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES)
+    max_score=models.DecimalField(max_digits=5,decimal_places=2,null=True,blank=True)
 
     def save(self, *args, **kwargs):
         if self._state.adding:
             auto_id = get_auto_id(UserAssessmentAttempt)
             self.auto_id = auto_id
         super(UserAssessmentAttempt, self).save(*args, **kwargs)
+    def __str__(self):
+        return f"{self.user}s {self.assessment} attempt no {self.attempt_number}"
 
     class Meta:
         db_table = 'activities_user_assessment_attempt'
@@ -179,9 +182,9 @@ class UserAssessmentAttempt(BaseModel):
 
 # User Answer Model
 class UserAnswer(BaseModel):
-    user_attempt = models.ForeignKey('UserAssessmentAttempt', on_delete=models.CASCADE, related_name='user_answers')
-    question = models.ForeignKey('Question', on_delete=models.CASCADE, related_name='user_answers')
-    answer = models.ForeignKey('Answer', on_delete=models.CASCADE, related_name='user_answers')
+    user_attempt = models.ForeignKey('UserAssessmentAttempt', on_delete=models.CASCADE, related_name='user_answers_attempt')
+    question = models.ForeignKey('Question', on_delete=models.CASCADE, related_name='user_answers_question')
+    answer = models.ForeignKey('Answer', on_delete=models.CASCADE, related_name='user_answers_answer')
     marks_awarded = models.DecimalField(max_digits=5, decimal_places=2, default=0)
 
     def save(self, *args, **kwargs):
@@ -241,6 +244,7 @@ class Task(BaseModel):
     course_sub_content = models.ForeignKey('courses.CourseSubContent', on_delete=models.CASCADE, related_name='tasks')
     title = models.CharField(max_length=255)
     description = models.TextField()
+    task = models.TextField(null=True,blank=True)
     instructions = models.TextField()
 
     def save(self, *args, **kwargs):

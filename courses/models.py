@@ -2,6 +2,7 @@ from django.db import models
 from accounts.models import *
 from general.models import BaseModel
 from datetime import datetime, timedelta
+from activities.models import Task
 
 
 
@@ -119,9 +120,11 @@ class Chapter(BaseModel):
 class Attachment(BaseModel):
     name = models.CharField(max_length=255)
     url = models.URLField(max_length=500,blank=True)
-    chapter = models.ForeignKey('Chapter', on_delete=models.CASCADE,related_name='attachments')
+    chapter = models.ForeignKey('Chapter', on_delete=models.CASCADE,related_name='attachments',null=True,blank=True)
     type = models.CharField(max_length=10, choices=ATTACHMENT_TYPE_CHOICES)
     file=models.FileField(upload_to="attachments",null=True,blank=True)
+    task=models.ForeignKey(Task,on_delete=models.CASCADE,related_name="task_attachments",blank=True,null=True)
+
 
     def __str__(self):
         return self.name
