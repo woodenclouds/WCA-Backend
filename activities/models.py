@@ -19,6 +19,8 @@ SCORING_POLICY_CHOICES = (
 STATUS_CHOICES = (
     ('failed', 'Failed'),
     ('passed', 'Passed'),
+    ('submitted', 'Submitted'),
+
 )
 
 ATTACHMENT_TYPE_CHOICES = (
@@ -31,6 +33,7 @@ class CoursePurchase(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course_purchases')
     course = models.ForeignKey('courses.Course', on_delete=models.CASCADE, related_name='purchases')
     is_certificate_eligible = models.BooleanField(default=False)
+    certificate_eligible_time=models.DateTimeField(null=True,blank=True)
 
     def save(self, *args, **kwargs):
         if self._state.adding:
@@ -225,6 +228,8 @@ class Certificate(BaseModel):
     issued_on = models.DateField(default=datetime.now)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='certificates')
     course = models.ForeignKey('courses.Course', on_delete=models.CASCADE, related_name='certificates')
+    file=models.FileField(upload_to="certificates",null=True,blank=True)
+
 
     def save(self, *args, **kwargs):
         if self._state.adding:

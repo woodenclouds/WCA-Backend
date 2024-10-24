@@ -41,6 +41,11 @@ admin.site.register(Category, CategoryAdmin)
 # admin.site.register(Attachment, AttachmentAdmin)
 
 # Inline for managing attachments within the chapter detail page
+
+class AttachmentAdmin(admin.ModelAdmin):
+    model=Attachment
+    list_display=['name', 'url', 'type','file','id']
+admin.site.register(Attachment,AttachmentAdmin)
 class AttachmentInline(admin.TabularInline):
     model = Attachment
     extra = 1  # Allows adding one new attachment

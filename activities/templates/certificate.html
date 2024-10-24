@@ -1,0 +1,161 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate</title>
+    <!-- <link rel="stylesheet" href="{{ css_url }}"> -->
+    <style>
+        /* Basic Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Body Styling */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* Certificate Container */
+.certificate-container {
+    position: relative;
+    background: #fff;
+    width: 900px;
+    height: 600px;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+/* Background Images Styling */
+.background-left, .background-right {
+    position: absolute;
+    background-size: cover;
+}
+
+/* Left Background Image */
+/* .background-left {
+    background-image: url('./left.png');
+    width: 300px; 
+    height: 600px;
+    top: 0;
+    left: 0;
+}
+
+/
+.background-right {
+    background-image: url('./right.png');
+    width: 300px; 
+    height: 200px; 
+    bottom: 0;
+    right: 0;
+} */
+
+/* Right Section */
+.certificate-right {
+    padding: 40px;
+    width: 60%;
+    margin-left: auto; /* Pushes the right section to align properly */
+}
+
+.certification-text {
+    font-size: 18px;
+    color: #555;
+    margin-bottom: 10px;
+}
+
+.recipient-name {
+    font-size: 32px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.completion-text {
+    font-size: 16px;
+    color: #555;
+    margin-bottom: 10px;
+}
+
+.course-title {
+    font-size: 24px;
+    color: #222;
+    margin-bottom: 15px;
+}
+
+.hosted-by {
+    font-size: 16px;
+    color: #555;
+    margin-bottom: 40px;
+}
+
+.issued-on {
+    font-size: 16px;
+    color: #555;
+    margin-bottom: 5px;
+}
+
+.issue-date {
+    font-size: 20px;
+    font-weight: bold;
+    color: #222;
+    margin-bottom: 30px;
+}
+
+.footer-logo {
+    margin-top: 20px;
+}
+
+.footer-logo img {
+    width: 100px;
+}
+
+        .background-left {
+            background-image: url('{{ left_image_url }}');
+            width: 300px; 
+            height: 600px;
+            top: 0;
+            left: 0;
+        }
+        
+        /* Right Background Image */
+        .background-right {
+            background-image: url('{{ right_image_url }}');
+            width: 300px; 
+            height: 200px; 
+            bottom: 0;
+            right: 0;
+        }
+
+    </style>
+</head>
+
+
+<body>
+    <div class="certificate-container">
+        <div class="background-left"></div>
+        <div class="background-right"></div>
+
+        <div class="certificate-right">
+            <p class="certification-text">This is Certified that</p>
+            <h1 class="recipient-name">{{ full_name }}</h1>
+            <p class="completion-text">Has successfully completed the course:</p>
+            <h2 class="course-title">Course: {{ course_title }}</h2>
+            <p class="hosted-by">Hosted by {{ instructor_name }}</p>
+            <p class="issued-on">Issued on</p>
+            <p class="issue-date">{{ issue_date }}</p>
+            <div class="footer-logo">
+                <img src="{{ logo_url }}" alt="WCA Footer Logo">
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

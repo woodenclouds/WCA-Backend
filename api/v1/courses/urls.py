@@ -12,7 +12,7 @@ re_path(r'^user/get-contents-of-course-sub-content-sidebar/(?P<pk>.*)/$',views.g
 re_path(r'^user/get-chapter-detail/(?P<pk>.*)/$',views.get_chapter_detail,name="get_chapter_detail"),
 re_path(r'^user/get-assessment-detail/(?P<pk>.*)/$',views.get_assessment_details,name="get_assesment_detail"),
 re_path(r'^user/get-course-detail/(?P<pk>.*)/$',views.get_course_detail,name="get_course_detail"),
-re_path(r'^user/submit-assessment/(?P<pk>.*)/$',views.submit_assessment,name="submit_assessment")
+
     
 
 ]

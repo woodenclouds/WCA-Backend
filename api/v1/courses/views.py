@@ -37,6 +37,7 @@ from general.functions import *
 from general.encryptions import *
 from api.v1.accounts.functions import *
 from . functions import *
+
 from .serializers import *
 
 
@@ -116,6 +117,17 @@ def get_course_sub_content_sidebar(request,pk):
 
         
         has_purchased = CoursePurchase.objects.filter(user=user, course=course).exists()
+        latest_chapter_id = None
+
+        if has_purchased:
+            # Get the latest chapter progress of the user for this course
+            latest_progress = UserProgress.objects.filter(
+                user=user, 
+                chapter__course_sub_content__course=course
+            ).order_by('-date_added').first()  # Assuming there's a field `date_completed`
+
+            if latest_progress:
+                latest_chapter_id = latest_progress.chapter.id  # Get the chapter ID from user progress
 
 
         course_sub_contents=CourseSubContent.objects.filter(course=course).order_by("position")
@@ -132,7 +144,8 @@ def get_course_sub_content_sidebar(request,pk):
                 "title": "Success",
                 "data":{
                     "data":serialized_data,
-                    "is_purchased":has_purchased
+                    "is_purchased":has_purchased,
+                    "last_chapter_user_watched":latest_chapter_id
                 },
             }
         else:
@@ -565,6 +578,8 @@ def submit_assessment(request, pk):
         user_assessment_attempt.status = 'passed' if total_score >= assessment.passing_score else 'failed'
         user_assessment_attempt.save()
         attempts_left = assessment.max_attempts - attempt_number
+        course=assessment.course_sub_content.course
+        certificate_eligible=check_certificate_eligibility(user,course)
 
         # Success response
         response_data = {

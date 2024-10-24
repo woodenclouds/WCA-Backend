@@ -2,7 +2,7 @@ from django.db import models
 from accounts.models import *
 from general.models import BaseModel
 from datetime import datetime, timedelta
-from activities.models import Task
+from activities.models import Task,TaskSubmission
 
 
 
@@ -124,6 +124,7 @@ class Attachment(BaseModel):
     type = models.CharField(max_length=10, choices=ATTACHMENT_TYPE_CHOICES)
     file=models.FileField(upload_to="attachments",null=True,blank=True)
     task=models.ForeignKey(Task,on_delete=models.CASCADE,related_name="task_attachments",blank=True,null=True)
+    user_task_submission=models.ForeignKey(TaskSubmission,on_delete=models.CASCADE,null=True,blank=True,related_name="task_submission_attachments")
 
 
     def __str__(self):

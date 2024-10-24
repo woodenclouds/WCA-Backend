@@ -50,12 +50,19 @@ class ListCourseSubcontentSidebar(serializers.ModelSerializer):
 
 class ListChapterofSubcontentSidebar(serializers.ModelSerializer):
     is_completed=serializers.SerializerMethodField()
+    latest_user_progress_id=serializers.SerializerMethodField()
     class Meta:
         model=Chapter
-        fields=['id','title','thumbnail','duration','is_completed','position']
+        fields=['id','title','thumbnail','duration','is_completed','position','latest_user_progress_id']
     def get_is_completed(self, obj):
         user = self.context.get('request').user
         return UserProgress.objects.filter(user=user, chapter=obj, is_completed=True).exists()
+    def get_latest_user_progress_id(self, obj):
+        user = self.context.get('request').user
+        # Get the first user progress object, if it exists
+        user_progress = UserProgress.objects.filter(user=user, chapter=obj).first()
+        # Check if user_progress is not None before accessing its id
+        return user_progress.id if user_progress else None
 #title,duration,instructor_name,language,is_certificate_available,course_fee,description
 class ViewCourseDetailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -73,12 +80,13 @@ class ViewChapterDetail(serializers.ModelSerializer):
     
     def get_documents(self, obj):
         # Filter attachments that have a file but no URL
+        request=self.context['request']
         documents = obj.attachments.filter(file__isnull=False, url='')
         return [
             {
                 'id': document.id,
                 'name': document.name,
-                'file': document.file.url if document.file else None
+                'file': request.build_absolute_uri(document.file.url) if document.file else None
             }
             for document in documents
         ]
@@ -114,16 +122,43 @@ class EnrolledCourseSerializer(serializers.ModelSerializer):
 
         # Get total number of chapters for the course
         total_chapters = Chapter.objects.filter(course_sub_content__course=obj).count()
-        print(f"total chapters {total_chapters}")
+        print(f"Total chapters: {total_chapters}")
 
         # Get the number of chapters the user has completed
         completed_chapters = UserProgress.objects.filter(
             user=user, chapter__course_sub_content__course=obj, is_completed=True
         ).count()
-        print("completed chapters",completed_chapters)
+        print(f"Completed chapters: {completed_chapters}")
 
-        # Calculate the user progress value as a percentage
-        user_progress = (completed_chapters / total_chapters) * 100 if total_chapters > 0 else 0
+        # Get total number of assessments for the course
+        total_assessments = Assessment.objects.filter(course_sub_content__course=obj).count()
+        print(f"Total assessments: {total_assessments}")
+
+        # Get the number of assessments the user has passed
+        passed_assessments = UserAssessmentAttempt.objects.filter(
+            user=user, assessment__course_sub_content__course=obj, status='passed'
+        ).distinct().count()
+        print(f"Passed assessments: {passed_assessments}")
+
+        # Get total number of tasks for the course
+        total_tasks = Task.objects.filter(course_sub_content__course=obj).count()
+        print(f"Total tasks: {total_tasks}")
+
+        # Get the number of tasks the user has submitted
+        submitted_tasks = TaskSubmission.objects.filter(
+            user=user, task__course_sub_content__course=obj
+        ).count()
+        print(f"Submitted tasks: {submitted_tasks}")
+
+        # Calculate progress for each component
+        chapter_progress = (completed_chapters / total_chapters) * 100 if total_chapters > 0 else 0
+        assessment_progress = (passed_assessments / total_assessments) * 100 if total_assessments > 0 else 0
+        task_progress = (submitted_tasks / total_tasks) * 100 if total_tasks > 0 else 0
+
+        # Average the progress values and clamp between 0 and 100
+        user_progress = (chapter_progress + assessment_progress + task_progress) / 3
+        user_progress = max(0, min(100, user_progress))  # Ensure progress is between 0 and 100
+
         return round(user_progress, 2)  # Rounded to 2 decimal places
 
 class AnswerSerializer(serializers.ModelSerializer):

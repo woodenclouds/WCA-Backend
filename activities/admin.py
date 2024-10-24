@@ -1,7 +1,7 @@
 from django.contrib import admin
 from . models import *
 import nested_admin
-from courses.admin import TaskAttachmentInline
+from courses.admin import TaskAttachmentInline,AttachmentInline
 
 
 # Register your models here.
@@ -95,9 +95,17 @@ admin.site.register(Task, TaskAdmin)
 
 
 class TaskSubmissionAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "task", "status", "point")
+    list_display = ("id", "user", "task", "status", "point", "list_attachments")
     list_filter = ("status", "task", "user", "date_added", "date_updated")
     search_fields = ("user__first_name", "user__last_name", "task__title")
+    inlines = [AttachmentInline]
+    
+    def list_attachments(self, obj):
+        # Uses the related_name 'attachments' to access related Attachment objects
+        attachments = obj.task_submission_attachments.all()
+        return ", ".join([attachment.name for attachment in attachments])
+
+    list_attachments.short_description = "Attachments"
 
 admin.site.register(TaskSubmission, TaskSubmissionAdmin)
 
